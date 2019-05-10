@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Buffers;
+using System.IO;
 using System.IO.Pipelines;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
+using Microsoft.AspNetCore.Rewrite.Internal.IISUrlRewrite;
 using Microsoft.AspNetCore.Server.Kestrel.Transport.Abstractions.Internal;
 
 using PipedWebsocket.Infrastructure;
@@ -41,22 +43,10 @@ namespace PipedWebsocket
             {
                 var buffer = readResult.Buffer;
 
-                var eolPosition = buffer.PositionOf((byte)0);
-                if (eolPosition != null)
-                {
-                    var message = Encoding.UTF8.GetString(buffer.Slice(0, eolPosition.Value).First.Span);
-                    var messageCopy = Encoding.UTF8.GetBytes($"Du skrev {message}!!");
-                    _messages.Enqueue(messageCopy);
-
-                    buffer = buffer.Slice(buffer.GetPosition(1, eolPosition.Value));
-                }
-
-                var copy = buffer.ToArray();
-                copy.AsSpan().Reverse();
-                _messages.Enqueue(copy);
+                var parser = MessageHandler.ParseFromBuffer(ref buffer);
+                parser.HandleMessage(_messages);
 
                 reader.AdvanceTo(buffer.End);
-
                 readResult = await reader.ReadAsync(cancellationToken);
             }
 

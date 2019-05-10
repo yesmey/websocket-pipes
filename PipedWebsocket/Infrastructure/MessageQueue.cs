@@ -10,7 +10,7 @@ namespace PipedWebsocket.Infrastructure
         private readonly ConcurrentQueue<ReadOnlyMemory<byte>> _workItems = new ConcurrentQueue<ReadOnlyMemory<byte>>();
         private readonly SemaphoreSlim _signal = new SemaphoreSlim(0);
 
-        public void Enqueue(ReadOnlyMemory<byte> item)
+        public void Enqueue(in ReadOnlyMemory<byte> item)
         {
             _workItems.Enqueue(item);
             _signal.Release();
