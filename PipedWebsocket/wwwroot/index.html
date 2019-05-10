@@ -128,8 +128,19 @@
                 alert("socket not connected");
             }
 
-            var uint8Array = textEncoder.encode(sendMessage.value);
-            socket.send(uint8Array.buffer);
+            var string = sendMessage.value;
+
+            var buffer = new ArrayBuffer(string.length + 5);
+            var utf8Array = new Uint8Array(buffer, 0, string.length);
+            textEncoder.encodeInto(string, utf8Array);
+
+            var utf8Array2 = new Uint8Array(buffer, string.length + 1, 4);
+            utf8Array2[0] = 65;
+            utf8Array2[1] = 66;
+            utf8Array2[2] = 67;
+            utf8Array2[3] = 68;
+
+            socket.send(buffer);
             commsLog.innerHTML += '<tr>' +
                 '<td class="commslog-client">Client</td>' +
                 '<td class="commslog-server">Server</td>' +

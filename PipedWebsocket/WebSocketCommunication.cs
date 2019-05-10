@@ -2,6 +2,7 @@
 using System.Buffers;
 using System.IO.Pipelines;
 using System.Net.WebSockets;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -39,6 +40,16 @@ namespace PipedWebsocket
 			while (!readResult.IsCompleted)
 			{
 				var buffer = readResult.Buffer;
+
+				var eolPosition = buffer.PositionOf((byte)0);
+				if (eolPosition != null)
+				{
+					var message = Encoding.UTF8.GetString(buffer.Slice(0, eolPosition.Value).First.Span);
+					var messageCopy = Encoding.UTF8.GetBytes($"Du skrev {message}!!");
+					_messages.Enqueue(messageCopy);
+
+					buffer = buffer.Slice(buffer.GetPosition(1, eolPosition.Value));
+				}
 
 				var copy = buffer.ToArray();
 				copy.AsSpan().Reverse();
@@ -92,11 +103,6 @@ namespace PipedWebsocket
 				try
 				{
 					var message = await _messages.DequeueAsync(cancellationToken);
-					if (webSocket.State != WebSocketState.Open)
-					{
-						return;
-					}
-
 					await webSocket.SendAsync(message, WebSocketMessageType.Binary, true, cancellationToken);
 				}
 				catch (OperationCanceledException)
